@@ -76,55 +76,66 @@ def index():
 @app.route('/predict', methods=['POST'])
 def predict():
     """Handle prediction request"""
+    error_message = None
+    success_message = None
+    prediction_result = None
+    
     if model is None:
-        flash('Model is not loaded. Please check the server logs.', 'error')
-        return redirect(url_for('index'))
-    
-    # Ensure model_features is available
-    if model_features is None:
-        flash('Model features not available. Please reload the model.', 'error')
-        return redirect(url_for('index'))
-    
-    try:
-        # Get form data
-        form_data = {}
-        for feature in model_features:
-            value = request.form.get(feature)
-            if value is None or value.strip() == '':
-                flash(f'Please provide a value for {feature.replace("_", " ").title()}', 'error')
-                return redirect(url_for('index'))
-            
-            try:
-                form_data[feature] = float(value)
-            except ValueError:
-                flash(f'Invalid value for {feature.replace("_", " ").title()}. Please enter a number.', 'error')
-                return redirect(url_for('index'))
-        
-        # Create DataFrame for prediction
-        input_data = pd.DataFrame([form_data])
-        
-        # Make prediction - handle different model types
+        error_message = 'Model is not loaded. Please check the server logs.'
+    elif model_features is None:
+        error_message = 'Model features not available. Please reload the model.'
+    else:
         try:
-            if hasattr(model, 'predict'):
-                prediction = model.predict(input_data)[0]
-            else:
-                # For other model types, try different prediction methods
-                prediction = model.fittedvalues[0] if hasattr(model, 'fittedvalues') else 0
-        except Exception as pred_error:
-            logging.error(f"Model prediction error: {pred_error}")
-            # Try alternative prediction approach
-            prediction = float(np.sum([form_data[f] * 1000 for f in model_features]) / len(model_features))
-        
-        # Format prediction as currency
-        predicted_price = f"${prediction:,.2f}"
-        
-        flash(f'Predicted Car Price: {predicted_price}', 'success')
-        
-    except Exception as e:
-        logging.error(f"Prediction error: {str(e)}")
-        flash(f'Prediction failed: {str(e)}', 'error')
+            # Get form data
+            form_data = {}
+            for feature in model_features:
+                value = request.form.get(feature)
+                if value is None or value.strip() == '':
+                    error_message = f'Please provide a value for {feature.replace("_", " ").title()}'
+                    break
+                
+                try:
+                    form_data[feature] = float(value)
+                except ValueError:
+                    error_message = f'Invalid value for {feature.replace("_", " ").title()}. Please enter a number.'
+                    break
+            
+            if not error_message:
+                # Create DataFrame for prediction
+                input_data = pd.DataFrame([form_data])
+                logging.info(f"Input data for prediction: {form_data}")
+                
+                # Make prediction - handle different model types
+                try:
+                    if hasattr(model, 'predict'):
+                        prediction = model.predict(input_data)[0]
+                        logging.info(f"Prediction successful: {prediction}")
+                    else:
+                        # For other model types, try different prediction methods
+                        prediction = model.fittedvalues[0] if hasattr(model, 'fittedvalues') else 0
+                        logging.info(f"Alternative prediction: {prediction}")
+                except Exception as pred_error:
+                    logging.error(f"Model prediction error: {pred_error}")
+                    # Try alternative prediction approach
+                    prediction = float(np.sum([form_data[f] * 1000 for f in model_features]) / len(model_features))
+                    logging.info(f"Fallback prediction: {prediction}")
+                
+                # Format prediction as currency
+                prediction_result = f"${prediction:,.2f}"
+                success_message = f'Predicted Car Price: {prediction_result}'
+                logging.info(f"Final result: {success_message}")
+                
+        except Exception as e:
+            logging.error(f"Prediction error: {str(e)}")
+            error_message = f'Prediction failed: {str(e)}'
     
-    return redirect(url_for('index'))
+    # Render the template directly with the result instead of using flash and redirect
+    return render_template('index.html', 
+                         model_loaded=(model is not None), 
+                         features=model_features,
+                         error_message=error_message,
+                         success_message=success_message,
+                         prediction_result=prediction_result)
 
 @app.route('/reload_model')
 def reload_model():
