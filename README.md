@@ -56,3 +56,5 @@ Preferred communication style: Simple, everyday language.
 - **Pre-trained Model**: OLS regression model stored as pickle file
 - **Model File**: `attached_assets/ols_model_1754216076665.pkl`
 - **Feature Requirements**: Dynamic feature detection with car-specific attributes
+### Render Deployment.
+- **Deployed using render : https://toyota-car-resale-value-prediction-2.onrender.com
