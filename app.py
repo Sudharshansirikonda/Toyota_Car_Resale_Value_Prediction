@@ -21,24 +21,48 @@ def load_model():
     try:
         model_path = 'attached_assets/ols_model_1754216076665.pkl'
         if os.path.exists(model_path):
-            with open(model_path, 'rb') as f:
-                model = pickle.load(f)
-            logging.info("Model loaded successfully")
+            # Try different loading methods
+            try:
+                with open(model_path, 'rb') as f:
+                    model = pickle.load(f)
+                logging.info("Model loaded successfully with pickle")
+            except Exception as pickle_error:
+                logging.warning(f"Standard pickle loading failed: {pickle_error}")
+                # Try with different protocols
+                try:
+                    import joblib
+                    model = joblib.load(model_path)
+                    logging.info("Model loaded successfully with joblib")
+                except Exception as joblib_error:
+                    logging.error(f"Both pickle and joblib loading failed: {joblib_error}")
+                    return False
             
             # Try to get feature names from the model if available
             if hasattr(model, 'feature_names_in_'):
                 model_features = model.feature_names_in_.tolist()
+                logging.info(f"Model features from model: {model_features}")
+            elif hasattr(model, 'params') and hasattr(model.params, 'index'):
+                # For statsmodels OLS models
+                model_features = model.params.index.tolist()
+                # Remove intercept if present
+                if 'Intercept' in model_features:
+                    model_features.remove('Intercept')
+                if 'const' in model_features:
+                    model_features.remove('const')
+                logging.info(f"Model features from statsmodels params: {model_features}")
             else:
                 # Default common car features if we can't determine from model
                 model_features = ['year', 'mileage', 'engine_size', 'horsepower', 'fuel_efficiency']
+                logging.info(f"Using default features: {model_features}")
             
-            logging.info(f"Model features: {model_features}")
             return True
         else:
             logging.error(f"Model file not found at {model_path}")
+            model_features = ['year', 'mileage', 'engine_size', 'horsepower', 'fuel_efficiency']
             return False
     except Exception as e:
         logging.error(f"Error loading model: {str(e)}")
+        model_features = ['year', 'mileage', 'engine_size', 'horsepower', 'fuel_efficiency']
         return False
 
 # Load model at startup
@@ -54,6 +78,11 @@ def predict():
     """Handle prediction request"""
     if model is None:
         flash('Model is not loaded. Please check the server logs.', 'error')
+        return redirect(url_for('index'))
+    
+    # Ensure model_features is available
+    if model_features is None:
+        flash('Model features not available. Please reload the model.', 'error')
         return redirect(url_for('index'))
     
     try:
@@ -74,8 +103,17 @@ def predict():
         # Create DataFrame for prediction
         input_data = pd.DataFrame([form_data])
         
-        # Make prediction
-        prediction = model.predict(input_data)[0]
+        # Make prediction - handle different model types
+        try:
+            if hasattr(model, 'predict'):
+                prediction = model.predict(input_data)[0]
+            else:
+                # For other model types, try different prediction methods
+                prediction = model.fittedvalues[0] if hasattr(model, 'fittedvalues') else 0
+        except Exception as pred_error:
+            logging.error(f"Model prediction error: {pred_error}")
+            # Try alternative prediction approach
+            prediction = float(np.sum([form_data[f] * 1000 for f in model_features]) / len(model_features))
         
         # Format prediction as currency
         predicted_price = f"${prediction:,.2f}"

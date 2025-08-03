@@ -69,17 +69,20 @@
                                     {% for feature in features %}
                                     <div class="col-md-6 mb-3">
                                         <label for="{{ feature }}" class="form-label">
-                                            {{ feature.replace('_', ' ').title() }}
-                                            {% if feature == 'year' %}
-                                                <small class="text-muted">(e.g., 2020)</small>
-                                            {% elif feature == 'mileage' %}
-                                                <small class="text-muted">(miles)</small>
-                                            {% elif feature == 'engine_size' %}
-                                                <small class="text-muted">(liters)</small>
-                                            {% elif feature == 'horsepower' %}
-                                                <small class="text-muted">(HP)</small>
-                                            {% elif feature == 'fuel_efficiency' %}
-                                                <small class="text-muted">(MPG)</small>
+                                            {% if feature == 'KM' %}
+                                                Kilometers <small class="text-muted">(distance driven)</small>
+                                            {% elif feature == 'Doors' %}
+                                                Number of Doors <small class="text-muted">(2, 3, 4, 5)</small>
+                                            {% elif feature == 'HP' %}
+                                                Horsepower <small class="text-muted">(engine power)</small>
+                                            {% elif feature == 'Age_08_04' %}
+                                                Car Age <small class="text-muted">(years since 2004)</small>
+                                            {% elif feature == 'Gears' %}
+                                                Number of Gears <small class="text-muted">(transmission)</small>
+                                            {% elif feature == 'Weight' %}
+                                                Weight <small class="text-muted">(kg)</small>
+                                            {% else %}
+                                                {{ feature.replace('_', ' ').title() }}
                                             {% endif %}
                                         </label>
                                         <input type="number" 
@@ -88,16 +91,18 @@
                                                name="{{ feature }}" 
                                                step="any" 
                                                required
-                                               {% if feature == 'year' %}
-                                                   min="1990" max="2025" placeholder="2020"
-                                               {% elif feature == 'mileage' %}
+                                               {% if feature == 'KM' %}
                                                    min="0" placeholder="50000"
-                                               {% elif feature == 'engine_size' %}
-                                                   min="0.5" max="10" step="0.1" placeholder="2.5"
-                                               {% elif feature == 'horsepower' %}
-                                                   min="50" max="1000" placeholder="200"
-                                               {% elif feature == 'fuel_efficiency' %}
-                                                   min="5" max="50" placeholder="25"
+                                               {% elif feature == 'Doors' %}
+                                                   min="2" max="5" step="1" placeholder="4"
+                                               {% elif feature == 'HP' %}
+                                                   min="50" max="1000" placeholder="150"
+                                               {% elif feature == 'Age_08_04' %}
+                                                   min="0" max="30" step="1" placeholder="10"
+                                               {% elif feature == 'Gears' %}
+                                                   min="3" max="8" step="1" placeholder="5"
+                                               {% elif feature == 'Weight' %}
+                                                   min="500" max="3000" placeholder="1200"
                                                {% else %}
                                                    placeholder="Enter value"
                                                {% endif %}>
